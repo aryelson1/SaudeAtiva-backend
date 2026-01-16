@@ -1,0 +1,22 @@
+{
+    "preset": "ts-jest",
+    "testEnvironment": "node",
+    "setupFiles": ["<rootDir>/jestEnv.js"],
+    "setupFilesAfterEnv": [
+        "jest-extended/all"
+    ],
+    "moduleNameMapper": {
+        "^@root(.*)$": "<rootDir>/src/$1",
+        "^@models(.*)$": "<rootDir>/src/models$1",
+        "^@utils(.*)$": "<rootDir>/src/utils$1",
+        "^@mocks(.*)$": "<rootDir>/__tests__/__mocks__$1",
+        "^@routes(.*)$": "<rootDir>/src/api/routes$1"
+
+    },
+    "modulePathIgnorePatterns": [
+        "./built/",
+        "./dist/",
+        "__types__",
+        "__mocks__"
+    ]
+}

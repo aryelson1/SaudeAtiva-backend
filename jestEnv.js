@@ -1,0 +1,1 @@
+process.env.JWT_SECRET = "jest-jwt-secret";

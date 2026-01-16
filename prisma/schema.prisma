@@ -1,0 +1,230 @@
+generator client {
+  provider      = "prisma-client-js"
+  output        = "../src/generated/prisma"
+  binaryTargets = ["native", "debian-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Enums
+enum TipoProfissional {
+  NUTRICIONISTA
+  PSICOLOGO
+}
+
+enum StatusAgendamento {
+  PENDENTE
+  CONFIRMADO
+  CANCELADO
+  CONCLUIDO
+  NAO_COMPARECEU
+}
+
+enum TipoAtendimento {
+  PRESENCIAL
+  ONLINE
+}
+
+enum GeneroCliente {
+  MASCULINO
+  FEMININO
+  OUTRO
+  NAO_INFORMAR
+}
+
+// Tabela de Profissionais
+model Profissional {
+  id                String            @id @default(uuid())
+  nome              String
+  email             String            @unique
+  senha             String
+  telefone          String?  
+  cpf               String            @unique
+  tipo              TipoProfissional
+  especialidade     String?  
+  registro          String            @unique // CRN para nutricionista, CRP para psicólogo
+  foto              String?
+  bio               String?           @db.Text
+  ativo             Boolean           @default(true)
+  
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+  
+  // Relações
+  agendamentos      Agendamento[]
+  disponibilidades  Disponibilidade[]
+  prontuarios       Prontuario[]
+  formularios       Formulario[]
+  
+  @@map("profissionais")
+}
+
+// Tabela de Clientes
+model Cliente {
+  id                String            @id @default(uuid())
+  nome              String
+  email             String            @unique
+  senha             String?  
+  telefone          String
+  cpf               String?            @unique
+  dataNascimento    DateTime?  
+  genero            GeneroCliente?  
+  endereco          String?
+  cidade            String?  
+  estado            String? 
+  cep               String? 
+  foto              String?
+  observacoes       String?           @db.Text
+  ativo             Boolean           @default(true)
+  
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+  
+  // Relações
+  agendamentos      Agendamento[]
+  prontuarios       Prontuario[]
+  respostas         RespostaFormulario[]
+  
+  @@map("clientes")
+}
+
+// Tabela de Agendamentos
+model Agendamento {
+  id                String            @id @default(uuid())
+  profissionalId    String
+  clienteId         String
+  dataHora          DateTime
+  duracao           Int               @default(60) // em minutos
+  tipo              TipoAtendimento
+  status            StatusAgendamento @default(PENDENTE)
+  linkOnline        String?
+  valor             Decimal?          @db.Decimal(10, 2) // Opcional agora
+  observacoes       String?           @db.Text
+  motivoCancelamento String?          @db.Text
+  
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+  
+  // Relações
+  profissional      Profissional      @relation(fields: [profissionalId], references: [id])
+  cliente           Cliente           @relation(fields:  [clienteId], references: [id])
+  prontuario        Prontuario?  
+  
+  @@map("agendamentos")
+  @@index([profissionalId])
+  @@index([clienteId])
+  @@index([dataHora])
+  @@index([status]) // Adicionado índice para filtrar por status
+}
+
+// Tabela de Disponibilidade dos Profissionais
+model Disponibilidade {
+  id                String            @id @default(uuid())
+  profissionalId    String
+  diaSemana         Int               // 0 = Domingo, 1 = Segunda, etc.
+  horaInicio        String            // formato "HH:mm"
+  horaFim           String            // formato "HH:mm"
+  ativo             Boolean           @default(true)
+  
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+  
+  // Relações
+  profissional      Profissional      @relation(fields: [profissionalId], references: [id], onDelete: Cascade)
+  
+  @@map("disponibilidades")
+  @@index([profissionalId])
+  @@index([diaSemana]) // Facilita buscar horários por dia
+}
+
+// Tabela de Formulários/Questionários (SIMPLIFICADA COM JSON)
+model Formulario {
+  id                String            @id @default(uuid())
+  profissionalId    String?  
+  titulo            String
+  descricao         String?           @db.Text
+  tipo              TipoProfissional?  // null = geral para todos
+  perguntas         Json              // Array de perguntas em JSON
+  ativo             Boolean           @default(true)
+  obrigatorio       Boolean           @default(false)
+  
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+  
+  // Relações
+  profissional      Profissional?      @relation(fields: [profissionalId], references: [id])
+  respostas         RespostaFormulario[]
+  
+  @@map("formularios")
+  @@index([tipo]) // Facilita buscar formulários por tipo
+}
+
+// Tabela de Respostas do Formulário (SIMPLIFICADA COM JSON)
+model RespostaFormulario {
+  id                String            @id @default(uuid())
+  formularioId      String
+  clienteId         String
+  respostas         Json              // Array de respostas em JSON
+  dataPreenchimento DateTime          @default(now())
+  
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+  
+  // Relações
+  formulario        Formulario        @relation(fields: [formularioId], references: [id])
+  cliente           Cliente           @relation(fields: [clienteId], references: [id])
+  
+  @@map("respostas_formulario")
+  @@index([formularioId])
+  @@index([clienteId])
+  @@unique([formularioId, clienteId]) // Cliente só pode responder 1x cada formulário
+}
+
+// Tabela de Prontuários
+model Prontuario {
+  id                String            @id @default(uuid())
+  agendamentoId     String            @unique
+  profissionalId    String
+  clienteId         String
+  anotacoes         String?           @db.Text
+  diagnostico       String?           @db.Text
+  prescricao        String?           @db.Text
+  orientacoes       String?           @db.Text
+  anexos            Json?             // URLs de arquivos, exames, etc.
+  
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+  
+  // Relações
+  agendamento       Agendamento       @relation(fields: [agendamentoId], references: [id])
+  profissional      Profissional      @relation(fields: [profissionalId], references: [id])
+  cliente           Cliente           @relation(fields: [clienteId], references: [id])
+  evolucoes         Evolucao[]
+  
+  @@map("prontuarios")
+  @@index([profissionalId])
+  @@index([clienteId])
+}
+
+// Tabela de Evoluções (acompanhamento do cliente)
+model Evolucao {
+  id                String            @id @default(uuid())
+  prontuarioId      String
+  data              DateTime          @default(now())
+  titulo            String?            // Ex: "Consulta de retorno", "Avaliação mensal"
+  observacoes       String?           @db.Text
+  medicoes          Json?             // peso, altura, IMC, circunferências, etc.
+  
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+  
+  // Relações
+  prontuario        Prontuario        @relation(fields: [prontuarioId], references: [id], onDelete: Cascade)
+  
+  @@map("evolucoes")
+  @@index([prontuarioId])
+  @@index([data]) // Facilita ordenar evoluções por data
+}
