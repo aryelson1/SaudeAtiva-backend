@@ -49,6 +49,9 @@ model Profissional {
   foto              String?
   bio               String?           @db.Text
   ativo             Boolean           @default(true)
+  instagram         String?
+  linkedin          String?
+  whatsApp          String?
   
   createdAt         DateTime          @default(now())
   updatedAt         DateTime          @updatedAt

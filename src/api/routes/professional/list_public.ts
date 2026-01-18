@@ -88,6 +88,9 @@ router.get(
                     registro: true,
                     foto: true,
                     bio:  true,
+                    instagram: true,
+                    linkedin: true,
+                    whatsApp: true,
                     createdAt: true,
                     // Incluir disponibilidades
                     disponibilidades: {
@@ -134,6 +137,9 @@ router.get(
             disponibilidades: prof.disponibilidades,
             totalAtendimentos: prof._count.agendamentos,
             temDisponibilidade: prof.disponibilidades. length > 0,
+            instagram: prof.instagram,
+            linkedin: prof.linkedin,
+            whatsApp: prof.whatsApp,
         }));
 
         res.status(200).json({

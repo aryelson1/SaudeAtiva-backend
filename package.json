@@ -1,5 +1,5 @@
 {
-  "name": "modelo-website-backend",
+  "name": "saudeativa-backend",
   "version": "0.10.0",
   "main": "src/index.ts",
   "scripts": {
@@ -14,19 +14,23 @@
     "build": "npm run clean && npm run tsc",
     "pub": "npm version -m \"release: %s\"",
     "dist": "npm run build && node esbuild.js",
-    "esbuild": "node esbuild.js"
+    "esbuild": "node esbuild.js",
+    "seed": "ts-node prisma/seed.ts"
+  },
+  "prisma": {
+    "seed": "ts-node prisma/seed.ts"
   },
   "repository": {
     "format": "prettier --write .",
     "type": "git",
-    "url": "git+ssh://git@bitbucket.org/hwit1/egsa-trail-website-backend.git"
+    "url": "git+ssh://git@github.com:aryelson1/SaudeAtiva-backend.git"
   },
   "author": "",
   "license": "ISC",
   "bugs": {
-    "url": "https://bitbucket.org/hwit1/egsa-trail-website-backend/issues"
+    "url": "https://github.com/aryelson1/SaudeAtiva-backend/issues"
   },
-  "homepage": "https://bitbucket.org/hwit1/egsa-trail-website-backend#readme",
+  "homepage": "https://github.com/aryelson1/SaudeAtiva-backend#readme",
   "description": "",
   "devDependencies": {
     "@faker-js/faker": "^8.4.1",
@@ -37,7 +41,7 @@
     "@types/jest": "^30.0.0",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/lodash": "^4.17.19",
-    "@types/node": "^24.0.4",
+    "@types/node": "^24.10.9",
     "@types/pg": "^8.15.4",
     "@types/supertest": "^6.0.3",
     "del-cli": "^6.0.0",
@@ -49,9 +53,10 @@
     "prisma": "^6.13.0",
     "supertest": "^7.1.4",
     "ts-jest": "^29.4.1",
+    "ts-node": "^10.9.2",
     "tsc-alias": "^1.8.16",
     "tsx": "^4.20.3",
-    "typescript": "^5.8.3"
+    "typescript": "^5.9.3"
   },
   "dependencies": {
     "@prisma/client": "^6.13.0",
