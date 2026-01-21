@@ -29,6 +29,9 @@ async function main() {
       especialidade: 'Nutrição Esportiva',
       registro: 'CRN-12345',
       bio: 'Nutricionista especializada em nutrição esportiva com mais de 10 anos de experiência.',
+      instagram: 'https://instagram.com/ana.silva',
+      linkedin: 'https://linkedin.com/in/ana.silva',
+      whatsApp: '5511987654321',
       ativo: true,
     },
   })
@@ -44,6 +47,9 @@ async function main() {
       especialidade: 'Nutrição Clínica',
       registro: 'CRN-23456',
       bio: 'Especialista em nutrição clínica e emagrecimento saudável.',
+      instagram: 'https://instagram.com/carlos.santos',
+      linkedin: 'https://linkedin.com/in/carlos.santos',
+      whatsApp: '5511987654322',
       ativo: true,
     },
   })

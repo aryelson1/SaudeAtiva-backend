@@ -96,6 +96,9 @@ router.get(
                     foto: true,
                     bio: true,
                     createdAt: true,
+                    instagram: true,
+                    linkedin: true,
+                    whatsApp: true,
                     disponibilidades: {
                         where: {
                             ativo:  true,
@@ -155,6 +158,9 @@ router.get(
                 resumoDisponibilidade,
                 temDisponibilidade: prof.disponibilidades.length > 0,
                 totalAtendimentos: prof._count.agendamentos,
+                instagram: prof.instagram || null,
+                linkedin: prof.linkedin || null,
+                whatsApp: prof.whatsApp || null,
                 badges: {
                     novo: isNovoProfissional(prof. createdAt),
                     experiente: prof._count.agendamentos >= 50,
