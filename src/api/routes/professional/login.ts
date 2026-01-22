@@ -15,11 +15,11 @@ const router = express.Router();
 router.post(
     '/api/login/professional',
     [
-        body('username')
+        body('cpf')
             .notEmpty()
-            .withMessage('username is required')
+            .withMessage('cpf is required')
             .isString()
-            .withMessage('username must be a string'),
+            .withMessage('cpf must be a string'),
         body('password')
             .notEmpty()
             .withMessage('password is required')
@@ -62,4 +62,4 @@ router.post(
     }
 );
 
-export { router as loginRouter };
+export { router as loginProfissionalRouter };

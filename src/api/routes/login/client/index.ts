@@ -16,11 +16,11 @@ const router = express.Router();
 router.post(
     '/api/login/client',
     [
-        body('username')
+        body('cpf')
             .notEmpty()
-            .withMessage('username is required')
+            .withMessage('cpf is required')
             .isString()
-            .withMessage('username must be a string'),
+            .withMessage('cpf must be a string'),
         body('password')
             .notEmpty()
             .withMessage('password is required')
