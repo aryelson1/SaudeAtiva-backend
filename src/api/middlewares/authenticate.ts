@@ -9,6 +9,9 @@ export type UserJwtPayload = {
     id: Uuid;
     username: string;
     contextFilter?: {};
+    type?: string;
+    specialty?: string;
+    photo?: string;
 };
 
 declare global {

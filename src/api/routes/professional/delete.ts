@@ -17,6 +17,7 @@ router.delete(
             .withMessage('id must be a valid UUID'),
     ],
     validateRequest,
+    authenticate,
     async (req: Request, res: Response, next: NextFunction) => {
         const { id } = req.params;
 

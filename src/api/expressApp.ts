@@ -15,7 +15,8 @@ import { listPublicDetailedProfissionalRouter } from './routes/professional/list
 import { listPublicProfissionalRouter } from './routes/professional/list_public';
 import { updateProfissionalRouter } from './routes/professional/update';
 import { loginProfissionalRouter } from './routes/professional/login';
-import { getProfissionalDashboardRouter } from './routes/professional/dashboard/get';
+import { dashboardRouter } from './routes/professional/dashboard/get';
+import { questionnaireRouter } from './routes/questionnaire';
 
 const app = express();
 app.use(json());
@@ -31,7 +32,8 @@ app.use(getProfissionalRouter);
 app.use(listPublicDetailedProfissionalRouter);
 app.use(listPublicProfissionalRouter);
 app.use(updateProfissionalRouter);
-app.use(getProfissionalDashboardRouter)
+app.use(dashboardRouter);
+app.use(questionnaireRouter);
 
 app.all('*', async () => {
     throw new NotFoundError('Route not found');

@@ -1,130 +1,232 @@
-import express, { Request, Response, NextFunction } from 'express';
-import { param } from 'express-validator';
-
-import { validateRequest, authenticate } from '@root/api/middlewares';
+import express, { NextFunction, Request, Response } from 'express';
+import { authenticate, UserJwtPayload } from '@root/api/middlewares/authenticate';
 import prisma from '@routes/common/prisma';
+import { NotFoundError } from '@root/api/errors';
+import { startOfDay, endOfDay, addDays } from 'date-fns';
 
 const router = express.Router();
 
 router.get(
-    '/api/profissional/:id/dashboard',
+    '/api/professionals/dashboard',
     authenticate,
-    [
-        param('id')
-            .notEmpty()
-            .withMessage('id is required')
-            .isUUID()
-            .withMessage('id must be a valid UUID'),
-    ],
-    validateRequest,
     async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            const user = req.user;
+            const profissionalId = user?.id;
 
-        const { id } = req.params;
-
-        // Busca tipo do profissional
-        const profissional = await prisma.profissional.findUnique({
-            where: { id },
-            select: {
-                id: true,
-                nome: true,
-                tipo: true,
-                ativo: true,
-            },
-        });
-
-        if (!profissional) {
-            res.status(404).json({
-                errors: [{ message: 'Profissional não encontrado' }],
+            // Verifica se o profissional existe
+            const profissional = await prisma.profissional.findUnique({
+                where: { id: profissionalId },
             });
-            return;
-        }
 
-        // =========================
-        // BASE COMUM
-        // =========================
+            if (!profissional) {
+                throw new NotFoundError('Profissional não encontrado');
+            }
 
-        const hojeInicio = new Date();
-        hojeInicio.setHours(0, 0, 0, 0);
+            // Data de hoje
+            const hoje = new Date();
+            const inicioDia = startOfDay(hoje);
+            const fimDia = endOfDay(hoje);
+            const proximos7Dias = addDays(hoje, 7);
 
-        const hojeFim = new Date();
-        hojeFim.setHours(23, 59, 59, 999);
-
-        const agendamentosHoje = await prisma.agendamento.count({
-            where: {
-                profissionalId: id,
-                dataHora: {
-                    gte: hojeInicio,
-                    lte: hojeFim,
-                },
-            },
-        });
-
-        const faturamentoMes = await prisma.agendamento.aggregate({
-            where: {
-                profissionalId: id,
-                status: 'CONCLUIDO',
-            },
-            _sum: {
-                valor: true,
-            },
-        });
-
-        const baseDashboard = {
-            agendamentosHoje,
-            faturamentoMes: faturamentoMes._sum.valor || 0,
-        };
-
-        console.log('Base Dashboard:', baseDashboard);
-        
-        // =========================
-        // NUTRICIONISTA
-        // =========================
-
-        if (profissional.tipo === 'NUTRICIONISTA') {
-
-            const evolucoesRecentes = await prisma.evolucao.findMany({
+            // 1. Total de clientes únicos
+            const totalClients = await prisma.agendamento.groupBy({
+                by: ['clienteId'],
                 where: {
-                    prontuario: {
-                        profissionalId: id,
-                    },
+                    profissionalId,
                 },
-                orderBy: {
-                    data: 'desc',
-                },
-                take: 5,
             });
 
-            res.status(200).json({
-                profissional,
-                ...baseDashboard,
-                evolucoesRecentes,
-            });
-
-            return;
-        }
-
-        // =========================
-        // PSICÓLOGO
-        // =========================
-
-        if (profissional.tipo === 'PSICOLOGO') {
-
-            const sessoesRealizadas = await prisma.agendamento.count({
+            // 2. Total de agendamentos
+            const totalAppointments = await prisma.agendamento.count({
                 where: {
-                    profissionalId: id,
+                    profissionalId,
+                },
+            });
+
+            // 3. Agendamentos concluídos
+            const completedAppointments = await prisma.agendamento.count({
+                where: {
+                    profissionalId,
                     status: 'CONCLUIDO',
                 },
             });
 
-            res.status(200).json({
-                profissional,
-                ...baseDashboard,
-                sessoesRealizadas,
+            // 4. Agendamentos pendentes
+            const pendingAppointments = await prisma.agendamento.count({
+                where: {
+                    profissionalId,
+                    status: {
+                        in: ['PENDENTE', 'CONFIRMADO'],
+                    },
+                    dataHora: {
+                        gte: hoje,
+                    },
+                },
             });
 
-            return;
+            // 5. Agendamentos de hoje
+            const todayAppointmentsCount = await prisma.agendamento.count({
+                where: {
+                    profissionalId,
+                    dataHora: {
+                        gte: inicioDia,
+                        lte: fimDia,
+                    },
+                },
+            });
+
+            // 6. Formulários pendentes de resposta
+            const formulariosPendentes = await prisma.formulario.count({
+                where: {
+                    profissionalId,
+                    ativo: true,
+                    respostas: {
+                        none: {},
+                    },
+                },
+            });
+
+            // 7. Buscar agendamentos de hoje com detalhes
+            const todayAppointments = await prisma.agendamento.findMany({
+                where: {
+                    profissionalId,
+                    dataHora: {
+                        gte: inicioDia,
+                        lte: fimDia,
+                    },
+                },
+                include: {
+                    cliente: {
+                        select: {
+                            id: true,
+                            nome: true,
+                            foto: true,
+                            telefone: true,
+                        },
+                    },
+                },
+                orderBy: {
+                    dataHora: 'asc',
+                },
+            });
+
+            // 8. Próximos agendamentos (7 dias)
+            const upcomingAppointments = await prisma.agendamento.findMany({
+                where: {
+                    profissionalId,
+                    dataHora: {
+                        gt: fimDia,
+                        lte: proximos7Dias,
+                    },
+                    status: {
+                        in: ['PENDENTE', 'CONFIRMADO'],
+                    },
+                },
+                include: {
+                    cliente: {
+                        select: {
+                            id: true,
+                            nome: true,
+                            foto: true,
+                            telefone: true,
+                        },
+                    },
+                },
+                orderBy: {
+                    dataHora: 'asc',
+                },
+                take: 10,
+            });
+
+            // 9. Clientes recentes (últimos 5)
+            const recentClients = await prisma.cliente.findMany({
+                where: {
+                    agendamentos: {
+                        some: {
+                            profissionalId,
+                        },
+                    },
+                },
+                select: {
+                    id: true,
+                    nome: true,
+                    email: true,
+                    telefone: true,
+                    foto: true,
+                    createdAt: true,
+                },
+                orderBy: {
+                    createdAt: 'desc',
+                },
+                take: 5,
+            });
+
+            // Formatar dados para o frontend
+            const formattedTodayAppointments = todayAppointments.map((apt) => ({
+                id: apt.id,
+                date: apt.dataHora.toISOString(),
+                isOnline: apt.tipo === 'ONLINE',
+                status: getStatusLabel(apt.status),
+                client: {
+                    name: apt.cliente.nome,
+                    photo: apt.cliente.foto,
+                },
+            }));
+
+            const formattedUpcomingAppointments = upcomingAppointments.map((apt) => ({
+                id: apt.id,
+                date: apt.dataHora.toISOString(),
+                isOnline: apt.tipo === 'ONLINE',
+                status: getStatusLabel(apt.status),
+                client: {
+                    name: apt.cliente.nome,
+                    photo: apt.cliente.foto,
+                },
+            }));
+
+            const formattedRecentClients = recentClients.map((client) => ({
+                name: client.nome,
+                email: client.email,
+                phone: client.telefone,
+                photo: client.foto,
+                createdAt: client.createdAt.toISOString(),
+            }));
+
+            // Resposta final
+            res.status(200).json({
+                success: true,
+                data: {
+                    stats: {
+                        totalClients: totalClients.length,
+                        totalAppointments,
+                        completedAppointments,
+                        pendingAppointments,
+                        todayAppointments: todayAppointmentsCount,
+                        pendingQuestionnaires: formulariosPendentes,
+                    },
+                    todayAppointments: formattedTodayAppointments,
+                    upcomingAppointments: formattedUpcomingAppointments,
+                    recentClients: formattedRecentClients,
+                    pendingQuestionnaires: [],
+                },
+            });
+        } catch (error) {
+            next(error);
         }
     }
 );
 
-export { router as getProfissionalDashboardRouter };
+// Função auxiliar para traduzir status
+function getStatusLabel(status: string): string {
+    const statusMap: Record<string, string> = {
+        PENDENTE: 'Agendado',
+        CONFIRMADO: 'Confirmado',
+        CONCLUIDO: 'Realizado',
+        CANCELADO: 'Cancelado',
+        NAO_COMPARECEU: 'Não Compareceu',
+    };
+    return statusMap[status] || status;
+}
+
+export { router as dashboardRouter };

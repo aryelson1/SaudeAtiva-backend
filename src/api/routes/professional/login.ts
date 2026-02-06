@@ -38,13 +38,13 @@ router.post(
                 cpf: cpf,
             }
         })
-
+        console.log('userRow', userRow);
         if (!userRow) {
-            throw new AuthenticationError();
+            throw new AuthenticationError(); 
         }
 
         const isValid = await bcrypt.compare(password, userRow.senha);
-
+        console.log('isValid', isValid);
         if (!isValid) {
             throw new AuthenticationError();
         }
@@ -52,6 +52,9 @@ router.post(
         const jwtPayload: UserJwtPayload = {
             id: userRow.id as Uuid,
             username: userRow.email,
+            type: userRow.tipo,
+            specialty: userRow.especialidade ?? undefined,
+            photo: userRow.foto ?? undefined,
         };
 
         const token = jwt.sign(jwtPayload, process.env.JWT_SECRET!, {
