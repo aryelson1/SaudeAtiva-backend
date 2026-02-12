@@ -38,13 +38,11 @@ router.post(
                 cpf: cpf,
             }
         })
-        console.log('userRow', userRow);
         if (!userRow) {
             throw new AuthenticationError(); 
         }
 
         const isValid = await bcrypt.compare(password, userRow.senha);
-        console.log('isValid', isValid);
         if (!isValid) {
             throw new AuthenticationError();
         }

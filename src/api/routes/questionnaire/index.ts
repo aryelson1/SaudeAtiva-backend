@@ -35,7 +35,6 @@ router.get(
                 where: {
                     OR: [
                         { profissionalId: professionalId },
-                        { profissionalId: null }, // Formulários gerais
                     ],
                     ativo: true,
                 },
